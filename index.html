@@ -1602,7 +1602,7 @@ window.onerror=function(msg,src,line){try{recLog('⚠️错误: '+msg+' @'+line)
 window.addEventListener('unhandledrejection',function(e){try{recLog('⚠️异步错误: '+(e.reason&&e.reason.message?e.reason.message:e.reason));toast('异步错误:'+(e.reason&&e.reason.message?e.reason.message:e.reason));}catch(x){}});
 let TQ=null;
 let textScores=[];
-let recognition=null,recIdx=-1,recBtn=null,recTimer=null;
+let recognition=null,recIdx=-1,recBtn=null,recTimer=null,srUnavailable=false;
 let mediaRecorder=null,recChunks=[],recBlobUrl=null,recStream=null,recBlob=null,recDone=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const speechSupported=!!SR;
@@ -1695,7 +1695,7 @@ async function startRecord(i,btn){
     btn.textContent='🎤 开始朗读';btn.classList.remove('recording');recIdx=-1;
     return;
   }
-  if(speechSupported){
+  if(speechSupported&&!srUnavailable){
     try{
       recognition=new SR();
       recognition.lang='en-US';
@@ -1711,12 +1711,17 @@ async function startRecord(i,btn){
         }
       };
       recognition.onerror=e=>{
+        if(recDone)return;
         if(e.error==='aborted'||e.error==='no-speech'){return;}
-        if(e.error==='not-allowed'){toast('⚠️ 请允许麦克风权限');}
+        /* 识别服务不可用（常见于国内安卓浏览器）：静默降级到音频分析评分，不再误报麦克风权限问题 */
+        if(!srUnavailable){toast('⚠️ 当前浏览器无法逐词识别，将按保守标准评分（最高70分）');}
+        srUnavailable=true;
+        recLog('语音识别不可用('+e.error+')，自动改用音频分析评分');
+        try{recognition.abort();}catch(x){}
       };
       recognition.onend=()=>{};
       recognition.start();
-    }catch(e){}
+    }catch(e){srUnavailable=true;}
   }
   if(recTimer)clearTimeout(recTimer);
   recTimer=setTimeout(()=>{
