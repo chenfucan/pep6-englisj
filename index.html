@@ -1770,7 +1770,7 @@ function stopRecord(){
       recLog('看门狗2：强制出基础分');
       const fb=$('fb-'+i);
       if(fb){fb.style.display='block';fb.innerHTML='<div>📢 已记录本次朗读（当前环境音频分析受限，按基础分计）</div><div style="font-size:11px;color:var(--sub);margin-top:4px">请尝试用 Chrome 浏览器获得更准评分</div>';}
-      showScore(i,62,{standard:60,fluency:60,completeness:65},'');
+      showScore(i,40,{standard:35,fluency:45,completeness:45},'');
       if(btn){btn.textContent='🔄 重新朗读';}
     }
   },6500);
@@ -1877,34 +1877,42 @@ async function scoreSentence(i,said){
   const saidWords=norm(said).split(' ').filter(Boolean);
   if(!saidWords.length){if(recBlob){recDone=false;analyzeRecording(i,recBlob).catch(e=>{recLog('⚠️分析异常:'+(e&&e.message?e.message:e));});}return;}
   /* 标准度：识别比对，读对的词占比 */
-  let matched=0;
+  /* 严格标准：目标词必须【按顺序】出现在识别文本中才算读对 */
+  let matched=0,ti=0;
   const resultHTML=[];
-  const saidSet=new Set(saidWords);
   targetWords.forEach(w=>{
-    if(saidSet.has(w)){matched++;resultHTML.push('<span class="ok">'+w+'</span>');}
+    const pos=saidWords.indexOf(w,ti);
+    if(pos>=0){matched++;ti=pos+1;resultHTML.push('<span class="ok">'+w+'</span>');}
     else{resultHTML.push('<span class="miss">'+w+'</span>');}
   });
   const extras=saidWords.filter(w=>!targetWords.includes(w));
   extras.forEach(w=>resultHTML.push('<span class="extra">+'+w+'</span>'));
-  const standard=matched/Math.max(targetWords.length,1);
+  /* 多说目标外单词 = 没按句子读，每个额外词扣8%标准度，最多扣30% */
+  const extraPenalty=Math.min(0.3,extras.length*0.08);
+  let standard=Math.max(0,(matched/Math.max(targetWords.length,1))-extraPenalty);
   /* 完整度+流利度：基于录音音频分析（连读也按语音时长算完整） */
   let completeness=Math.min(saidWords.length/Math.max(targetWords.length,1),1);
   let fluency=completeness;
   let duration=0,expected=0,speechDur=0;
+  let strictNote='';
   const au=recBlob?await analyzeAudio(recBlob):null;
   if(au){
     duration=au.duration;speechDur=au.speechDur;
     expected=targetWords.length*0.6+0.6;
     const expSpeech=targetWords.length*0.38;
     completeness=Math.min(speechDur/Math.max(expSpeech,1),1);
+    /* 严格标准：有效语音时长必须和本句长度匹配，否则按没读本句处理 */
+    const ratio=speechDur/Math.max(expSpeech,1);
+    if(ratio<0.45){completeness=Math.min(completeness,ratio*1.2);standard=Math.min(standard,0.3);strictNote='语音时长不足，未完整朗读本句';}
+    else if(ratio>1.9){standard=Math.min(standard,0.45);strictNote='语音过长，可能读的不是本句';}
     const durRatio=Math.min(duration/expected,expected/Math.max(duration,0.3));
     const silentRatio=1-au.speechRatio;
     const pauseScore=silentRatio>0.55?Math.max(0,1-(silentRatio-0.55)/0.45):1;
     fluency=0.65*durRatio+0.35*pauseScore;
   }
-  const score=Math.round(standard*40+fluency*30+completeness*30);
+  const score=Math.round(Math.max(10,standard*40+fluency*30+completeness*30));
   const dims={standard:Math.round(standard*100),fluency:Math.round(fluency*100),completeness:Math.round(completeness*100)};
-  const detail=resultHTML.join(' ')+'<div style="font-size:11px;color:var(--sub);margin-top:4px">你说的是：「'+said+'」· AI识别打分'+(duration>0?'（用时'+duration.toFixed(1)+'s）':'')+'</div>';
+  const detail=resultHTML.join(' ')+(strictNote?'<div style="font-size:11px;color:#e08a5b;margin-top:4px">⚠️ '+strictNote+'</div>':'')+'<div style="font-size:11px;color:var(--sub);margin-top:4px">你说的是：「'+said+'」· AI识别打分'+(duration>0?'（用时'+duration.toFixed(1)+'s）':'')+'</div>';
   showScore(i,score,dims,detail);
 }
 
@@ -1920,14 +1928,14 @@ async function analyzeRecording(i,blob){
   if(!au){recLog('⚠️ 两种分析均失败');showFallbackMsg(i);return;}
   /* 完整度：有效语音时长覆盖整句（连读=满语音时长=满分） */
   const expSpeech=wordCount*0.38;
-  let completeness,fluency,standard;
+  let completeness,fluency,standard,strictNote='';
   if(au.fallback){
-    /* 简化评分：只有录音总时长 */
+    /* 简化评分：只有录音总时长（无法校验内容，标准度从严） */
     completeness=Math.min(au.duration/(Math.max(wordCount*0.7,1)),1);
     const expected=wordCount*0.6+0.6;
     const durRatio=Math.min(au.duration/expected,expected/Math.max(au.duration,0.3));
     fluency=durRatio;
-    standard=0.55;
+    standard=0.4;
   }else{
     completeness=Math.min(au.speechDur/Math.max(expSpeech,1),1);
     const expected=wordCount*0.6+0.6;
@@ -1935,13 +1943,28 @@ async function analyzeRecording(i,blob){
     const silentRatio=1-au.speechRatio;
     const pauseScore=silentRatio>0.55?Math.max(0,1-(silentRatio-0.55)/0.45):1;
     fluency=0.65*durRatio+0.35*pauseScore;
-    standard=au.standard;
+    /* 严格标准：内容置信校验——有效语音时长和语音片段数必须像"在朗读本句" */
+    const ratio=au.speechDur/Math.max(expSpeech,1);
+    const segRatio=au.segments/Math.max(wordCount,1);
+    let cp=1;
+    if(au.segments===0){cp=0.2;strictNote='未检测到清晰语音';}
+    else if(ratio<0.45){cp=0.3;completeness=Math.min(completeness,0.35);strictNote='语音时长不足，未完整朗读本句';}
+    else if(ratio>1.9){cp=0.4;strictNote='语音过长，可能读的不是本句';}
+    else{
+      if(segRatio>3.5){cp=0.4;strictNote='语音片段过多，节奏与本句不符';}
+      else if(segRatio>2.2){cp=0.65;strictNote='语音节奏与本句有偏差';}
+    }
+    standard=Math.min(au.standard,0.85)*cp;
+    if(cp<1)recLog('内容校验未通过 cp='+cp+' ratio='+ratio.toFixed(2)+' seg='+au.segments+'/'+wordCount+'词');
   }
   let score=Math.round(standard*40+fluency*30+completeness*30);
   if(au.duration<0.8)score=Math.min(score,30);
-  score=Math.max(20,Math.min(98,score));
+  /* 严格标准：纯音频无法逐词校验内容，总分封顶70，杜绝"乱说也高分" */
+  score=Math.min(score,70);
+  score=Math.max(10,Math.min(98,score));
   const dims={standard:Math.round(standard*100),fluency:Math.round(fluency*100),completeness:Math.round(completeness*100)};
-  const hint=au.segments===0?'⚠️ 未检测到声音：请靠近麦克风、大声朗读后再试':(completeness>=0.85?'完整朗读了整句 ✓':completeness>=0.5?'朗读了大部分':'只读了一部分，多跟读几遍');
+  let hint=au.segments===0?'⚠️ 未检测到声音：请靠近麦克风、大声朗读后再试':(completeness>=0.85?'完整朗读了整句 ✓':completeness>=0.5?'朗读了大部分':'只读了一部分，多跟读几遍');
+  if(strictNote)hint='⚠️ '+strictNote;
   let detail;
   if(au.fallback){
     detail='<div>'+hint+'（当前浏览器不支持深度音频分析，已按录音时长简化评分）</div><div style="font-size:11px;color:var(--sub);margin-top:4px">录音 '+au.duration.toFixed(1)+'s / 参考 '+(wordCount*0.6+0.6).toFixed(1)+'s · 简化自动评分</div>';
