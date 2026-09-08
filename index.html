@@ -226,6 +226,16 @@ p.sub{color:var(--sub);font-size:13px;margin-bottom:12px}
 .home-avatar.has-frame::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px dashed rgba(255,201,77,.55);animation:spin 6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+.ear-chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.ear-chips .chip{background:var(--card2);border:1px solid var(--line);color:var(--text);padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer}
+.ear-chips .chip.on{background:var(--gold);color:#1a1a2e;border-color:var(--gold);font-weight:700}
+.ear-list{background:var(--card);border:1px solid var(--line);border-radius:12px;max-height:44vh;overflow-y:auto;padding:6px}
+.ear-item{display:flex;gap:10px;padding:10px;border-radius:10px;cursor:pointer;border-bottom:1px solid var(--line)}
+.ear-item.cur{background:var(--card2);box-shadow:inset 0 0 0 2px var(--gold)}
+.ear-no{color:var(--sub);font-size:12px;min-width:24px;padding-top:2px}
+.ear-en{font-size:15px;font-weight:700}
+.ear-cn{font-size:12px;color:var(--sub);margin-top:2px}
+.ear-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
 </style>
 </head>
 <body>
@@ -268,9 +278,42 @@ p.sub{color:var(--sub);font-size:13px;margin-bottom:12px}
         <button class="btn small" onclick="openPetBlind()">🥚 抽宠物蛋</button>
       </div>
     </div>
+    <div class="map-card" onclick="openEar()" style="cursor:pointer;background:linear-gradient(135deg,var(--card),var(--card2))">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:26px">🎧</span>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:15px">磨耳朵 · 语感磨起来</div>
+          <div style="font-size:12px;color:var(--sub)">单词 / 课文循环朗读，玩着听、睡前听</div>
+        </div>
+        <span style="color:var(--gold);font-size:18px">▶</span>
+      </div>
+    </div>
     <div id="dailyCard" class="map-card" style="cursor:default"></div>
     <div id="unitMap"></div>
     <div class="help-card" id="helpBox"></div>
+  </div>
+
+  <!-- ============ 磨耳朵 ============ -->
+  <div id="screen-ear" class="screen">
+    <h2 class="title" id="earTitle">🎧 磨耳朵</h2>
+    <p class="sub">单词和课文自动朗读，躺着听、玩着听，磨出语感</p>
+    <div id="earUnits" class="ear-chips"></div>
+    <div id="earMode" class="ear-chips"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0">
+      <b id="earCount" style="font-size:14px"></b>
+      <span id="earRate" style="font-size:12px;color:var(--sub)">语速 1x</span>
+    </div>
+    <div id="earListBox" class="ear-list"></div>
+    <div class="ear-controls">
+      <button class="btn small" onclick="earPrev()">⏮ 上一句</button>
+      <button class="btn gold" id="earPlayBtn" onclick="earToggle()">▶️ 播放</button>
+      <button class="btn small" onclick="earNext()">⏭ 下一句</button>
+      <button class="btn small" id="earLoopBtn" onclick="earToggleLoop()">🔁 循环</button>
+      <button class="btn small" onclick="earToggleRate()">🐢 语速</button>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" onclick="earStop();go('home');renderHome()">← 返回</button>
+    </div>
   </div>
 
   <!-- ============ UNIT SELECT ============ -->
@@ -767,6 +810,67 @@ function load(){
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,...S}));}catch(e){}}
 load();
 
+/* ========== 磨耳朵 ========== */
+let earState={uid:1,mode:'word',idx:0,playing:false,loop:true,rate:1};
+function openEar(){
+  earState.uid=(curUnit&&curUnit.id)?curUnit.id:1;
+  earState.idx=0;earState.playing=false;
+  try{speechSynthesis&&speechSynthesis.cancel();}catch(e){}
+  renderEar();go('ear');
+}
+function earItems(){
+  const u=UNITS[earState.uid-1];
+  if(earState.mode==='word')return u.words.map(w=>({en:w.en,cn:w.cn,ex:w.ex}));
+  return u.texts.map(t=>({en:t.en,cn:t.cn,who:t.who}));
+}
+function renderEar(){
+  const u=UNITS[earState.uid-1];
+  const t=$('earTitle');if(t)t.textContent='🎧 磨耳朵 · Unit '+u.id+' '+u.en;
+  $('earUnits').innerHTML=UNITS.map(x=>'<button class="chip'+(earState.uid===x.id?' on':'')+'" onclick="earState.uid='+x.id+';earState.idx=0;earStop();renderEar()">U'+x.id+'</button>').join('');
+  $('earMode').innerHTML='<button class="chip'+(earState.mode==='word'?' on':'')+'" onclick="earState.mode=\'word\';earState.idx=0;earStop();renderEar()">📖 单词</button><button class="chip'+(earState.mode==='text'?' on':'')+'" onclick="earState.mode=\'text\';earState.idx=0;earStop();renderEar()">📚 课文</button>';
+  const items=earItems();
+  $('earListBox').innerHTML=items.map((it,i)=>'<div class="ear-item'+(i===earState.idx?' cur':'')+'" onclick="earJump('+i+')"><span class="ear-no">'+(i+1)+'</span><div><div class="ear-en">'+(it.who?('['+it.who+'] '):'')+it.en+'</div><div class="ear-cn">'+it.cn+(it.ex?' · '+it.ex:'')+'</div></div></div>').join('');
+  $('earCount').textContent=(earState.idx+1)+' / '+items.length;
+  $('earRate').textContent='语速 '+(earState.rate===0.7?'0.7x':earState.rate===1.3?'1.3x':'1x');
+  updateEarBtn();
+}
+function earJump(i){earState.idx=i;renderEar();if(earState.playing)earPlay();}
+function earStop(){earState.playing=false;try{speechSynthesis&&speechSynthesis.cancel();}catch(e){}updateEarBtn();}
+function earToggle(){earState.playing?earStop():earPlay();}
+function earNext(){
+  const items=earItems();
+  if(earState.idx<items.length-1){earState.idx++;renderEar();earPlay();}
+  else if(earState.loop){earState.idx=0;renderEar();earPlay();}
+  else{earState.playing=false;updateEarBtn();}
+}
+function earPrev(){
+  if(earState.idx>0){earState.idx--;}else if(earState.loop){earState.idx=earItems().length-1;}
+  renderEar();if(earState.playing)earPlay();
+}
+function earToggleLoop(){earState.loop=!earState.loop;const b=$('earLoopBtn');if(b){b.textContent=earState.loop?'🔁 循环':'🔂 单次';b.style.opacity=earState.loop?1:0.5;}}
+function earToggleRate(){earState.rate=earState.rate===1?1.3:(earState.rate===1.3?0.7:1);renderEar();if(earState.playing)earPlay();}
+function earPlay(){
+  const items=earItems();if(!items.length)return;
+  earState.playing=true;updateEarBtn();
+  const it=items[earState.idx];
+  try{speechSynthesis&&speechSynthesis.cancel();}catch(e){}
+  const u=new SpeechSynthesisUtterance(it.en);
+  u.lang='en-US';u.rate=earState.rate;
+  u.onend=()=>{
+    if(!earState.playing)return;
+    if(earState.mode==='word'&&it.cn){
+      setTimeout(()=>{
+        if(!earState.playing)return;
+        const cu=new SpeechSynthesisUtterance(it.cn);cu.lang='zh-CN';cu.rate=1;
+        cu.onend=()=>earNext();
+        try{speechSynthesis.speak(cu);}catch(e){earNext();}
+      },200);
+    }else{earNext();}
+  };
+  try{speechSynthesis.speak(u);}catch(e){earState.playing=false;updateEarBtn();}
+}
+function updateEarBtn(){const b=$('earPlayBtn');if(b)b.textContent=earState.playing?'⏸ 暂停':'▶️ 播放';}
+
 /* ---------- 闯关存档 ---------- */
 function saveQuiz(){
   if(!Q||!Q.items||!Q.items.length)return;
@@ -1042,11 +1146,34 @@ function applyPetTime(){
   });
   save();
 }
+/* 宠物语音：用浏览器语音合成让宠物真的"说话" */
+let petVoice=null;
+function loadPetVoice(){
+  try{
+    if(!window.speechSynthesis)return;
+    const vs=speechSynthesis.getVoices();
+    petVoice=vs.find(v=>v.lang&&(v.lang.indexOf('zh')===0||v.lang.indexOf('cmn')===0))||null;
+  }catch(e){}
+}
+try{if(window.speechSynthesis){loadPetVoice();speechSynthesis.onvoiceschanged=loadPetVoice;}}catch(e){}
+function petSpeak(txt){
+  try{
+    if(!window.speechSynthesis)return;
+    const clean=String(txt||'').replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。！？、～…：；·""''（）\s]/g,'').trim();
+    if(!clean)return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(clean);
+    u.lang='zh-CN';u.rate=1.05;u.pitch=1.15;
+    if(petVoice)u.voice=petVoice;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 /* 宠物气泡 */
 function petSay(txt){
   const b=$('petBubble');if(!b)return;
   b.textContent=txt;b.classList.add('show');
   clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('show'),4000);
+  petSpeak(txt);
 }
 function randLine(arr){return arr[Math.floor(Math.random()*arr.length)];}
 /* 喂食 */
@@ -1964,8 +2091,9 @@ async function analyzeRecording(i,blob){
   }
   let score=Math.round(standard*40+fluency*30+completeness*30);
   if(au.duration<0.8)score=Math.min(score,30);
-  /* 严格标准：纯音频无法逐词校验内容，总分封顶70，杜绝"乱说也高分" */
-  score=Math.min(score,70);
+  /* 严格标准：纯音频无法逐词校验内容——特征全部匹配（像在认真朗读本句）最高80分；
+     特征异常（乱说/时长不符/片段过多）最高65分，杜绝"随便说也高分" */
+  score=(!strictNote&&typeof cp!=='undefined'&&cp>=1)?Math.min(score,80):Math.min(score,65);
   score=Math.max(10,Math.min(98,score));
   const dims={standard:Math.round(standard*100),fluency:Math.round(fluency*100),completeness:Math.round(completeness*100)};
   let hint=au.segments===0?'⚠️ 未检测到声音：请靠近麦克风、大声朗读后再试':(completeness>=0.85?'完整朗读了整句 ✓':completeness>=0.5?'朗读了大部分':'只读了一部分，多跟读几遍');
