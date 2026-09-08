@@ -236,6 +236,37 @@ p.sub{color:var(--sub);font-size:13px;margin-bottom:12px}
 .ear-en{font-size:15px;font-weight:700}
 .ear-cn{font-size:12px;color:var(--sub);margin-top:2px}
 .ear-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+/* ===== 宠物家园场景（学"雪梨"逼真卡通风） ===== */
+.home-scene{position:relative;background:linear-gradient(180deg,#8ecdf5 0%,#bfe5fb 55%,#8fd47a 55%,#6cbf5a 100%);overflow:hidden}
+.home-scene .pet-top,.home-scene .pet-bubble,.home-scene .pet-main,.home-scene .pet-actions{position:relative;z-index:3}
+.home-scene .pet-bubble{background:rgba(26,26,46,.78)}
+.hs-sun{position:absolute;top:8px;right:12px;font-size:26px;z-index:1;animation:sunPulse 4s ease-in-out infinite}
+.hs-cloud{position:absolute;font-size:22px;opacity:.9;z-index:1;animation:floatCloud 9s linear infinite}
+.hs-cloud.c1{top:8px;left:6%}
+.hs-cloud.c2{top:24px;left:58%;animation-duration:13s;animation-delay:2s}
+.hs-house{position:absolute;right:8px;bottom:18px;font-size:36px;z-index:2}
+.hs-grass{position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(180deg,#7cc65f,#5fb04c);z-index:1;border-radius:0 0 16px 16px}
+.hs-flower{position:absolute;bottom:16px;font-size:15px;z-index:2}
+.hs-flower.f1{left:10px}
+.hs-flower.f2{left:58px;font-size:11px}
+.hs-stage{font-size:11px;font-weight:800;background:rgba(26,26,46,.55);color:#ffe9a8;padding:2px 10px;border-radius:12px;display:inline-block;margin-bottom:2px}
+@keyframes sunPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes floatCloud{0%{transform:translateX(0)}50%{transform:translateX(16px)}100%{transform:translateX(0)}}
+@keyframes petBounce{0%{transform:scale(1)}30%{transform:scale(1.3) translateY(-10px)}60%{transform:scale(.92)}100%{transform:scale(1)}}
+.pet-bounce{animation:petBounce .7s ease}
+@keyframes petGlow{0%,100%{text-shadow:0 0 8px rgba(255,215,90,.7)}50%{text-shadow:0 0 22px rgba(255,215,90,1)}}
+.pet-glow{animation:petGlow 2s ease-in-out infinite}
+/* 宠物屋场景 */
+.ph-scene{position:relative;overflow:hidden;border-radius:14px;padding:16px 12px 12px;background:linear-gradient(180deg,#8ecdf5 0%,#bfe5fb 55%,#8fd47a 55%,#6cbf5a 100%);text-align:center}
+.ph-scene .ph-sun{position:absolute;top:8px;right:12px;font-size:24px;z-index:1;animation:sunPulse 4s ease-in-out infinite}
+.ph-scene .ph-cloud{position:absolute;font-size:20px;z-index:1;opacity:.9;animation:floatCloud 10s linear infinite}
+.ph-scene .ph-cloud.c1{top:6px;left:8%}
+.ph-scene .ph-cloud.c2{top:22px;left:55%;animation-duration:14s;animation-delay:2s}
+.ph-scene .ph-grass{position:absolute;left:0;right:0;bottom:0;height:16px;background:linear-gradient(180deg,#7cc65f,#5fb04c);z-index:1;border-radius:0 0 14px 14px}
+.ph-scene>*{position:relative;z-index:3}
+/* 成长日记 */
+.memo-item{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.memo-date{font-size:11px;color:var(--sub);min-width:72px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -254,7 +285,10 @@ p.sub{color:var(--sub);font-size:13px;margin-bottom:12px}
   <div id="screen-home" class="screen active">
     <h2 class="title">人教版（PEP）英语 · 六年级上册</h2>
     <p class="sub">2026秋新版 · 同步校内在学进度 · 玩法对标「英语天天练」</p>
-    <div class="pet-panel">
+    <div class="pet-panel home-scene">
+      <div class="hs-sun">☀️</div>
+      <div class="hs-cloud c1">☁️</div>
+      <div class="hs-cloud c2">☁️</div>
       <div class="pet-top">
         <div class="home-avatar" id="homeAvatar">🐣</div>
         <div style="flex:1;min-width:0">
@@ -265,6 +299,7 @@ p.sub{color:var(--sub);font-size:13px;margin-bottom:12px}
       </div>
       <div id="petBubble" class="pet-bubble"></div>
       <div class="pet-main" onclick="touchPet()">
+        <div class="hs-stage" id="homeStage">幼年期</div>
         <div id="petIcon" class="pet-icon">🐣</div>
         <div class="pet-stats">
           <div class="pet-bar"><span>🍖</span><div class="bar"><div id="petFoodBar" style="width:0%"></div></div><b id="petFoodTxt">--</b></div>
@@ -277,6 +312,10 @@ p.sub{color:var(--sub);font-size:13px;margin-bottom:12px}
         <button class="btn small" onclick="openPetHome('feed')">🍖 喂食</button>
         <button class="btn small" onclick="openPetBlind()">🥚 抽宠物蛋</button>
       </div>
+      <div class="hs-grass"></div>
+      <div class="hs-house">🏡</div>
+      <div class="hs-flower f1">🌷</div>
+      <div class="hs-flower f2">🌼</div>
     </div>
     <div class="map-card" onclick="openEar()" style="cursor:pointer;background:linear-gradient(135deg,var(--card),var(--card2))">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1097,6 +1136,7 @@ const LV_NAMES=['','幼年','少年','少年','成年','进化'];
 /* 宠物池：基础3只可商店直接购买；稀有/传说只从宠物蛋开出 */
 const PET_POOL=[
   {id:'p1',name:'小恐龙',icon:'🦖',rarity:'common',shop:80},
+  {id:'p4',name:'小狗',icon:'🐶',rarity:'common',shop:120},
   {id:'p2',name:'小企鹅',icon:'🐧',rarity:'common',shop:150},
   {id:'p3',name:'小火箭',icon:'🚀',rarity:'common',shop:250},
   {id:'r1',name:'独角兽',icon:'🦄',rarity:'rare'},
@@ -1127,6 +1167,8 @@ function petGrowIcon(pet){
   if(pet.lv>=3)return p.icon;
   return pet.icon;
 }
+function petStageName(lv){return lv>=6?'完全体':lv>=3?'成长期':'幼年期';}
+function petSizePx(lv){return lv>=6?68:lv>=3?54:40;}
 function curPet(){return S.equip.pet&&S.pets[S.equip.pet]?S.pets[S.equip.pet]:null;}
 function curPetDef(){const p=curPet();return p?PET_POOL.find(x=>x.id===p.id)||{icon:p.icon,name:p.name}:null;}
 /* 离线时间结算：饱食-3/小时，心情-0.2/小时（每日约-5），打开时补算 */
@@ -1142,7 +1184,11 @@ function applyPetTime(){
       p.lastAt=now;
     }
     const t=todayStr();
-    if(p.lastDay!==t){p.days=(p.days||0)+1;p.lastDay=t;}
+    if(p.lastDay!==t){p.days=(p.days||0)+1;p.lastDay=t;
+      if(p.days===7)petMemo(p,'📅 我们在一起7天啦！');
+      if(p.days===30)petMemo(p,'📅 30天！你是我最好的朋友！');
+      if(p.days===100)petMemo(p,'📅 100天！我们的故事还在继续！');
+    }
   });
   save();
 }
@@ -1176,6 +1222,14 @@ function petSay(txt){
   petSpeak(txt);
 }
 function randLine(arr){return arr[Math.floor(Math.random()*arr.length)];}
+/* 成长日记：把宠物成长的点滴都记下来 */
+function petMemo(p,txt){
+  if(!p||!txt)return;
+  if(!p.memo)p.memo=[];
+  p.memo.push({t:todayStr(),txt:txt});
+  if(p.memo.length>50)p.memo.shift();
+  save();
+}
 /* 喂食 */
 function feedPet(foodId){
   const p=curPet();const f=FOODS.find(x=>x.id===foodId);
@@ -1186,6 +1240,8 @@ function feedPet(foodId){
   p.mood=Math.min(100,p.mood+f.mood);
   addPetExp(p,f.exp);
   petSay('🍴 '+f.icon+' '+randLine(PET_LINES.fed));
+  const _td=todayStr();
+  if(p.lastFeedDay!==_td){p.lastFeedDay=_td;petMemo(p,'🍴 我喂'+p.name+'吃了'+f.name+'，它吃得可香啦！');}
   save();renderPetPanel();renderPetHome();refreshHud();
 }
 /* 摸摸互动 */
@@ -1204,8 +1260,11 @@ function addPetExp(p,exp){
   while(newLv<EXP_LV.length-1&&p.exp>=EXP_LV[newLv])newLv++;
   if(newLv>oldLv){
     p.lv=newLv;
-    if(newLv>=6){confetti();petSay('✨ '+randLine(PET_LINES.evo));}
+    if(newLv>=6){confetti();petSay('✨ '+randLine(PET_LINES.evo));petMemo(p,'✨ '+p.name+'进化成完全体啦！闪闪发光！');}
     else{confetti();petSay('🎉 '+randLine(PET_LINES.levelup));}
+    if(newLv===3)petMemo(p,'🏃 '+p.name+'学会奔跑啦，长大了一点点！');
+    /* 升级弹跳动画 */
+    const _ie=$('petIcon');if(_ie){_ie.classList.remove('pet-bounce');void _ie.offsetWidth;_ie.classList.add('pet-bounce');}
   }
 }
 /* 宠物蛋盲盒 */
@@ -1227,6 +1286,7 @@ function openPetBlind(){
     petSay('🥚 破壳啦！欢迎 '+pet.icon+' '+pet.name+'！'+(pet.rarity==='legend'?'🌟传说宠物！！':''));
     toast((pet.rarity==='legend'?'🌟传说！':pet.rarity==='rare'?'💎稀有！':'')+'领养了'+pet.name+'！');
     if(pet.rarity==='legend')confetti();
+    petMemo(np,'🥚 破壳啦！'+(pet.rarity==='legend'?'🌟传说':pet.rarity==='rare'?'💎稀有':'')+' '+pet.name+' 来到我的世界！');
   }
   save();renderShop();renderPetPanel();renderPetHome();
 }
@@ -1248,6 +1308,9 @@ function renderPetPanel(){
   if(!iconEl)return;
   if(!p){
     iconEl.textContent='🐣';
+    iconEl.style.fontSize='40px';
+    iconEl.classList.remove('pet-glow');
+    const st0=$('homeStage');if(st0)st0.textContent='——';
     nameEl.textContent='还没有宠物伙伴';
     mottoEl.textContent='去领养一只宠物，它会在你读英语时陪你！';
     ['petFoodBar','petMoodBar','petExpBar'].forEach(id=>{const e=$(id);if(e)e.style.width='0%';});
@@ -1258,6 +1321,9 @@ function renderPetPanel(){
   const clothesIcons=(p.outfit||[]).map(id=>{const cl=CLOTHES.find(x=>x.id===id);return cl?cl.icon:'';}).join('');
   iconEl.textContent=clothesIcons+petGrowIcon(p);
   const lv=petLevel(p);
+  iconEl.style.fontSize=petSizePx(lv)+'px';
+  const st=$('homeStage');if(st)st.textContent=petStageName(lv)+(lv>=6?' ✨':'');
+  if(lv>=6)iconEl.classList.add('pet-glow');else iconEl.classList.remove('pet-glow');
   nameEl.textContent=def.name+' · '+LV_NAMES[lv]+(p.rarity==='legend'?'🌟':p.rarity==='rare'?'💎':'');
   mottoEl.textContent='陪伴 '+p.days+' 天 · 点击它摸摸头';
   const f=Math.round(p.food),m=Math.round(p.mood);
@@ -1285,14 +1351,21 @@ function renderPetHome(mode){
   const lv=petLevel(p);
   const expNext=petExpNext(lv);
   const expPct=lv>=EXP_LV.length-1?100:Math.max(0,Math.min(100,Math.round((p.exp-EXP_LV[lv-1])/(EXP_LV[lv]-EXP_LV[lv-1])*100)));
-  hero.innerHTML=`<div class="ph-icon">${clothesIcons}${petGrowIcon(p)}</div>
-    <div style="font-size:16px;font-weight:800;margin-top:4px">${def.name}${p.rarity==='legend'?'🌟':p.rarity==='rare'?'💎':''}</div>
-    <div style="font-size:12px;color:var(--sub)">${LV_NAMES[lv]} · 陪伴 ${p.days} 天 · 亲密度 Lv.${lv} ${expNext?'('+expPct+'%)':'MAX'}</div>
+  hero.innerHTML=`<div class="ph-scene">
+      <div class="ph-sun">☀️</div>
+      <div class="ph-cloud c1">☁️</div>
+      <div class="ph-cloud c2">☁️</div>
+      <div class="ph-icon" style="font-size:${petSizePx(lv)}px;${lv>=6?'text-shadow:0 0 20px rgba(255,215,90,.9);':''}">${clothesIcons}${petGrowIcon(p)}</div>
+      <div style="font-size:15px;font-weight:800;margin-top:4px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.55)">${def.name}${p.rarity==='legend'?'🌟':p.rarity==='rare'?'💎':''} · ${petStageName(lv)}${lv>=6?' ✨':''}</div>
+      <div class="ph-grass"></div>
+    </div>
+    <div style="font-size:12px;color:var(--sub);margin-top:6px">${LV_NAMES[lv]} · 陪伴 ${p.days} 天 · 亲密度 Lv.${lv} ${expNext?'('+expPct+'%)':'MAX'}</div>
     <div style="height:10px;background:var(--card2);border-radius:5px;margin:8px 0 4px;overflow:hidden"><div style="height:100%;width:${expPct}%;background:linear-gradient(90deg,#9bbbf4,#c9a7e8);border-radius:5px"></div></div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px">
       <button class="btn small" onclick="touchPet()">🤗 摸摸</button>
       <button class="btn small" onclick="renderPetHome('feed')">🍖 喂食</button>
       <button class="btn small" onclick="renderPetHome('wardrobe')">👕 衣橱</button>
+      <button class="btn small" onclick="renderPetHome('memo')">📔 日记</button>
     </div>`;
   const body=$('phBody');
   if(mode==='feed'){
@@ -1317,6 +1390,11 @@ function renderPetHome(mode){
           <div class="fc-num">x${n}</div>
           <button class="btn small gold" ${n<1?'disabled':''} onclick="feedPet('${f.id}')">喂</button></div>`;
       }).join('')}</div>`;
+  }else if(mode==='memo'){
+    const memo=(p.memo||[]).slice().reverse();
+    body.innerHTML=`<div class="ph-sec"><div class="ph-sec-t">📔 成长日记 · ${p.name}的成长点滴</div>
+      ${memo.length?memo.map(m=>'<div class="memo-item"><span class="memo-date">'+m.t+'</span>'+m.txt+'</div>').join(''):'<div style="color:var(--sub);font-size:12px;padding:10px 0">还没有成长记录，快去学习、喂它长大吧！</div>'}
+      <div style="font-size:11px;color:var(--sub);margin-top:8px">它从破壳到现在，都是你一天天陪出来的 💛</div></div>`;
   }else{
     body.innerHTML=`<div class="ph-sec"><div class="ph-sec-t">👕 衣橱（给宠物打扮）</div>${renderWardrobeHtml()}</div>
       <div class="ph-sec"><div class="ph-sec-t">🍽️ 食物背包</div>
